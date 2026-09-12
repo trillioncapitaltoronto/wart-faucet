@@ -11,10 +11,10 @@ app.use(express.json({ limit: "8kb" }));
 
 function esc(s) {
   return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll("&", "&")
+    .replaceAll("<", "<")
+    .replaceAll(">", ">")
+    .replaceAll('"', """);
 }
 
 app.get("/", async (_req, res) => {
@@ -138,12 +138,15 @@ app.get("/api/status", (_req, res) => {
 
 balance
   .start()
-  .then(() => {
-    app.listen(config.port, () => {
+  .then((snap) => {
+    if (snap?.error) console.error("balance poll:", snap.error);
+    app.listen(config.port, "0.0.0.0", () => {
       console.log(`WART faucet ${config.faucetAddress} on :${config.port}`);
     });
   })
   .catch((err) => {
     console.error(err.message || err);
-    process.exit(1);
+    app.listen(config.port, "0.0.0.0", () => {
+      console.log(`WART faucet starting without a live node on :${config.port}`);
+    });
   });
