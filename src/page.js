@@ -1,9 +1,9 @@
 function esc(s) {
   return String(s ?? "")
-    .replaceAll("&", "&")
-    .replaceAll("<", "<")
-    .replaceAll(">", ">")
-    .replaceAll('"', """);
+    .replace(/&/g, "&#38;")
+    .replace(/</g, "&#60;")
+    .replace(/>/g, "&#62;")
+    .replace(/"/g, "&#34;");
 }
 
 export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, qr, claims = [] }) {
@@ -15,16 +15,16 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
         const tx = c.txHash || "";
         const txShown = tx.length > 10 ? tx.slice(0, 10) + "\u2026" : tx;
         const href = tx ? `https://wartscan.io/tx/${esc(tx)}` : "#";
-        return `<tr><td class=\"mono\">${esc(shown)}</td><td class=\"mono\">${esc(c.amount)}</td><td class=\"muted\">${esc(c.createdAt || "")}</td><td class=\"mono\">${tx ? `<a href=\"${href}\">${esc(txShown)}</a>` : \"\u2014\"}</td></tr>`;
+        return `<tr><td class="mono">${esc(shown)}</td><td class="mono">${esc(c.amount)}</td><td class="muted">${esc(c.createdAt || "")}</td><td class="mono">${tx ? `<a href="${href}">${esc(txShown)}</a>` : "\u2014"}</td></tr>`;
       }).join("")
-    : `<tr><td colspan=\"4\" class=\"muted\">No claims yet.</td></tr>`;
+    : `<tr><td colspan="4" class="muted">No claims yet.</td></tr>`;
   return `<!doctype html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-<meta charset=\"utf-8\"/>
-<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Community WART faucet</title>
-<meta name=\"description\" content=\"Community mainnet Warthog faucet. Not an official Warthog Network service.\"/>
+<meta name="description" content="Community mainnet Warthog faucet. Not an official Warthog Network service."/>
 <style>
   :root { color-scheme: dark; --bg:#07080d; --card:#0e1118; --line:#242a38; --gold:#f5c400; --text:#f4f5f7; --muted:#8b93a3; --ok:#3ddc84; --err:#ff6b6b; }
   * { box-sizing: border-box; }
@@ -65,96 +65,96 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
 </head>
 <body>
 <header>
-  <div class=\"brand\"><span class=\"dot\">W</span> Community WART faucet</div>
+  <div class="brand"><span class="dot">W</span> Community WART faucet</div>
   <nav>
-    <a href=\"https://warthog.network\">warthog.network</a>
-    <a href=\"https://docs.warthog.network\">docs</a>
-    <a href=\"https://wartscan.io\">explorer</a>
+    <a href="https://warthog.network">warthog.network</a>
+    <a href="https://docs.warthog.network">docs</a>
+    <a href="https://wartscan.io">explorer</a>
   </nav>
 </header>
 <main>
-  <p class=\"kicker\">Mainnet \u00b7 community pot \u00b7 not official</p>
+  <p class="kicker">Mainnet \u00b7 community pot \u00b7 not official</p>
   <h1>Starter WART so you can use the chain.</h1>
-  <p class=\"lede\">
+  <p class="lede">
     One drip per wallet. Donate or point a miner at the same address to keep the pot alive.
     Built with official <code>warthog-js</code> against a local or operator-chosen mainnet node.
     This is not operated by Warthog Network.
   </p>
-  <div class=\"stats\">
-    <div class=\"stat\"><b>${esc(drip)} WART</b><span>per wallet, once</span></div>
-    <div class=\"stat\"><b>${esc(reserve ?? \"waiting on node\")}</b><span>reserve</span></div>
-    <div class=\"stat\"><b>${esc(weekLeft)} / ${esc(weekMax)}</b><span>${nodeOk ? \"node live\" : \"node unreachable\"} \u00b7 week budget</span></div>
+  <div class="stats">
+    <div class="stat"><b>${esc(drip)} WART</b><span>per wallet, once</span></div>
+    <div class="stat"><b>${esc(reserve ?? "waiting on node")}</b><span>reserve</span></div>
+    <div class="stat"><b>${esc(weekLeft)} / ${esc(weekMax)}</b><span>${nodeOk ? "node live" : "node unreachable"} \u00b7 week budget</span></div>
   </div>
   <section>
-    <label for=\"addr\">Your mainnet address</label>
-    <input id=\"addr\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"48-character hex\"/>
-    <button class=\"gold\" id=\"go\">Request ${esc(drip)} WART</button>
-    <pre id=\"out\" hidden></pre>
+    <label for="addr">Your mainnet address</label>
+    <input id="addr" autocomplete="off" spellcheck="false" placeholder="48-character hex"/>
+    <button class="gold" id="go">Request ${esc(drip)} WART</button>
+    <pre id="out" hidden></pre>
   </section>
   <section>
-    <div class=\"row\">
-      <div style=\"flex:1\">
+    <div class="row">
+      <div style="flex:1">
         <label>Fund the pot \u2014 donate or mine</label>
-        <div class=\"addr\" id=\"faucet\">${esc(address)}</div>
-        <button class=\"ghost\" id=\"copy\">Copy address</button>
-        <button class=\"ghost\" id=\"copyMiner\">Copy miner flag</button>
-        \u00b7 <a href=\"https://wartscan.io/account/${esc(address)}\" style=\"color:var(--gold);font-size:.85rem\">wartscan.io</a>
-        <p class=\"lede\" style=\"margin:.8rem 0 .5rem;font-size:.88rem\">
+        <div class="addr" id="faucet">${esc(address)}</div>
+        <button class="ghost" id="copy">Copy address</button>
+        <button class="ghost" id="copyMiner">Copy miner flag</button>
+        \u00b7 <a href="https://wartscan.io/account/${esc(address)}" style="color:var(--gold);font-size:.85rem">wartscan.io</a>
+        <p class="lede" style="margin:.8rem 0 .5rem;font-size:.88rem">
           Any WART sent here becomes faucet reserve. Same for block rewards:
           paste this address as the pool payout / wallet field.
           Janushash needs <b>CPU + GPU</b> on one box. Do not mine to an exchange.
         </p>
-        <pre class=\"addr\" id=\"minerCmd\" style=\"margin:0\">-a ${esc(address)}</pre>
-        <p class=\"lede\" style=\"margin:.7rem 0 0;font-size:.82rem\">
+        <pre class="addr" id="minerCmd" style="margin:0">-a ${esc(address)}</pre>
+        <p class="lede" style="margin:.7rem 0 0;font-size:.82rem">
           BzMiner or janusminer: wallet/payout = that address.
           Solo against your node: <code>stratum+tcp://127.0.0.1:3456</code>.
-          Guide: <a href=\"https://docs.warthog.network/guides/mining/quickstart/\">mining quickstart</a>
-          \u00b7 pools: <a href=\"https://miningpoolstats.stream/warthog\">miningpoolstats</a>
-          \u00b7 calc: <a href=\"https://wartscan.io/calculator\">wartscan calculator</a>
+          Guide: <a href="https://docs.warthog.network/guides/mining/quickstart/">mining quickstart</a>
+          \u00b7 pools: <a href="https://miningpoolstats.stream/warthog">miningpoolstats</a>
+          \u00b7 calc: <a href="https://wartscan.io/calculator">wartscan calculator</a>
         </p>
       </div>
-      ${qrSrc ? `<img class=\"qr\" alt=\"QR\" src=\"${qrSrc}\"/>` : \"\"}
+      ${qrSrc ? `<img class="qr" alt="QR" src="${qrSrc}"/>` : ""}
     </div>
   </section>
   <section>
     <label>Public log</label>
-    <p class=\"lede\" style=\"margin:0 0 .6rem;font-size:.88rem\">Completed claims, most recent first. Address and tx only \u2014 no IPs.</p>
-    <table id=\"log\">
+    <p class="lede" style="margin:0 0 .6rem;font-size:.88rem">Completed claims, most recent first. Address and tx only \u2014 no IPs.</p>
+    <table id="log">
       <thead><tr><th>Address</th><th>Amount</th><th>When</th><th>Tx</th></tr></thead>
-      <tbody id=\"log-body\">${logRows}</tbody>
+      <tbody id="log-body">${logRows}</tbody>
     </table>
   </section>
   <footer>
     Community faucet. No accounts, no cards, no email.
-    Official project: <a href=\"https://warthog.network\">warthog.network</a>
-    \u00b7 Discord <a href=\"https://discord.gg/QMDV8bGTdQ\">invite</a>
-    \u00b7 Code <a href=\"https://github.com/trillioncapitaltoronto/wart-faucet\">github</a>
+    Official project: <a href="https://warthog.network">warthog.network</a>
+    \u00b7 Discord <a href="https://discord.gg/QMDV8bGTdQ">invite</a>
+    \u00b7 Code <a href="https://github.com/trillioncapitaltoronto/wart-faucet">github</a>
   </footer>
 </main>
 <script>
-document.getElementById(\"copy\").onclick = () => navigator.clipboard.writeText(document.getElementById(\"faucet\").textContent.trim());
-document.getElementById(\"copyMiner\").onclick = () => navigator.clipboard.writeText(\"-a \" + document.getElementById(\"faucet\").textContent.trim());
-document.getElementById(\"go\").onclick = async () => {
-  const btn = document.getElementById(\"go\");
-  const out = document.getElementById(\"out\");
+document.getElementById("copy").onclick = () => navigator.clipboard.writeText(document.getElementById("faucet").textContent.trim());
+document.getElementById("copyMiner").onclick = () => navigator.clipboard.writeText("-a " + document.getElementById("faucet").textContent.trim());
+document.getElementById("go").onclick = async () => {
+  const btn = document.getElementById("go");
+  const out = document.getElementById("out");
   btn.disabled = true;
   out.hidden = false;
-  out.className = \"\";
-  out.textContent = \"Sending\u2026\";
+  out.className = "";
+  out.textContent = "Sending\u2026";
   try {
-    const r = await fetch(\"/api/drip\", {
-      method: \"POST\",
-      headers: { \"content-type\": \"application/json\" },
-      body: JSON.stringify({ address: document.getElementById(\"addr\").value.trim() }),
+    const r = await fetch("/api/drip", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ address: document.getElementById("addr").value.trim() }),
     });
     const b = await r.json();
-    out.className = b.ok ? \"ok\" : \"err\";
+    out.className = b.ok ? "ok" : "err";
     out.textContent = b.ok
-      ? (\"Sent \" + b.amount + \" WART\" + (b.explorerUrl ? \"\\n\" + b.explorerUrl : \"\"))
-      : (\"Error: \" + (b.error || r.status));
+      ? ("Sent " + b.amount + " WART" + (b.explorerUrl ? "\\n" + b.explorerUrl : ""))
+      : ("Error: " + (b.error || r.status));
     if (b.ok) refreshLog();
   } catch (e) {
-    out.className = \"err\";
+    out.className = "err";
     out.textContent = e.message;
   } finally {
     btn.disabled = false;
@@ -162,18 +162,18 @@ document.getElementById(\"go\").onclick = async () => {
 };
 async function refreshLog() {
   try {
-    const r = await fetch(\"/api/log?limit=20\");
+    const r = await fetch("/api/log?limit=20");
     const j = await r.json();
-    const body = document.getElementById(\"log-body\");
-    if (!j.claims || !j.claims.length) { body.innerHTML = '<tr><td colspan=\"4\" class=\"muted\">No claims yet.</td></tr>'; return; }
+    const body = document.getElementById("log-body");
+    if (!j.claims || !j.claims.length) { body.innerHTML = '<tr><td colspan="4" class="muted">No claims yet.</td></tr>'; return; }
     body.innerHTML = j.claims.map((c) => {
-      const a = String(c.address || \"\");
-      const shown = a.length > 16 ? a.slice(0,10) + \"\u2026\" + a.slice(-6) : a;
-      const tx = c.tx_hash || \"\";
-      const txShown = tx.length > 10 ? tx.slice(0,10) + \"\u2026\" : tx;
-      const href = c.explorerUrl || (tx ? (\"https://wartscan.io/tx/\" + tx) : \"#\");
-      return '<tr><td class=\"mono\">' + shown + '</td><td class=\"mono\">' + (c.amount_wart || \"\") + '</td><td class=\"muted\">' + (c.created_at || \"\") + '</td><td class=\"mono\">' + (tx ? ('<a href=\"' + href + '\">' + txShown + '</a>') : \"\u2014\") + '</td></tr>';
-    }).join(\"\");
+      const a = String(c.address || "");
+      const shown = a.length > 16 ? a.slice(0,10) + "\u2026" + a.slice(-6) : a;
+      const tx = c.tx_hash || "";
+      const txShown = tx.length > 10 ? tx.slice(0,10) + "\u2026" : tx;
+      const href = c.explorerUrl || (tx ? ("https://wartscan.io/tx/" + tx) : "#");
+      return '<tr><td class="mono">' + shown + '</td><td class="mono">' + (c.amount_wart || "") + '</td><td class="muted">' + (c.created_at || "") + '</td><td class="mono">' + (tx ? ('<a href="' + href + '">' + txShown + '</a>') : "\u2014") + '</td></tr>';
+    }).join("");
   } catch (e) {}
 }
 </script>
