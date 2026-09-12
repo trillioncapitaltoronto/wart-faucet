@@ -47,6 +47,7 @@ app.get("/", async (_req, res) => {
         weekMax: String(config.weeklyBudget),
         nodeOk: !b.error,
         qr,
+        claims: store.recent(20),
       }),
     );
   } catch (err) {
@@ -64,6 +65,22 @@ app.post("/api/drip", async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: String(err.message || err) });
   }
+});
+
+app.get("/api/log", (req, res) => {
+  const limit = req.query?.limit;
+  const claims = store.recent(limit);
+  res.json({
+    platform: "web",
+    count: claims.length,
+    claims: claims.map((c) => ({
+      address: c.address,
+      amount_wart: c.amount,
+      created_at: c.createdAt,
+      tx_hash: c.txHash,
+      explorerUrl: c.txHash ? config.explorerTx(c.txHash) : null,
+    })),
+  });
 });
 
 app.get("/api/status", (_req, res) => {

@@ -27,8 +27,6 @@ function listOr(value, fallback) {
     .filter(Boolean);
 }
 
-const isProd = (process.env.NODE_ENV || "development") === "production";
-
 const hexPrivKey = required("FAUCET_HEX_PRIVKEY").toLowerCase();
 if (!/^[0-9a-f]{64}$/.test(hexPrivKey)) {
   throw new Error("FAUCET_HEX_PRIVKEY must be 64 hex characters (32-byte secp256k1 key).");
@@ -39,13 +37,9 @@ if (network !== "mainnet") {
   throw new Error(`This faucet is mainnet-only. Refusing NETWORK=${network}.`);
 }
 
-const nodeUrl = (process.env.NODE_URL || (isProd ? "http://127.0.0.1:3001" : "https://node.wartscan.io"))
+const nodeUrl = (process.env.NODE_URL || "https://node.wartscan.io")
   .trim()
   .replace(/\/$/, "");
-
-if (isProd && !process.env.NODE_URL) {
-  console.warn("NODE_URL unset in production; defaulting to http://127.0.0.1:3001 (run a local wart-node).");
-}
 
 const account = Account.fromPrivateKeyHex(hexPrivKey);
 
@@ -63,7 +57,7 @@ export const config = Object.freeze({
   ipWindowMs: intOr(process.env.IP_WINDOW_HOURS, 24) * 3600 * 1000,
   balancePollMs: intOr(process.env.BALANCE_POLL_MS, 60_000),
   claimsFile: process.env.CLAIMS_FILE || "./data/claims.json",
-  trustProxy: (process.env.TRUST_PROXY || "loopback").trim(),
+  trustProxy: (process.env.TRUST_PROXY || (process.env.RENDER || process.env.FLY_APP_NAME ? "true" : "loopback")).trim(),
   corsOrigins: listOr(process.env.CORS_ORIGIN, [
     "https://warthog.network",
     "https://www.warthog.network",
