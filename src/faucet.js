@@ -14,13 +14,37 @@ function toNum(s) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function txHashFrom(result) {
+  return (
+    result?.txHash ||
+    result?.txId ||
+    result?.data?.txHash ||
+    result?.data?.txId ||
+    null
+  );
+}
+
+async function broadcast(nodeUrl, tx) {
+  const res = await fetch(`${nodeUrl}/transaction/add`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(tx, (_k, v) => (typeof v === "bigint" ? Number(v) : v)),
+    signal: AbortSignal.timeout(8000),
+  });
+  const json = await res.json();
+  if (json?.code !== 0) {
+    return { success: false, error: json?.error || `node code ${json?.code}` };
+  }
+  return { success: true, txHash: json.txHash || json.data?.txHash || null };
+}
+
 export async function sendDrip({ address, ip }) {
   const raw = String(address || "").trim().toLowerCase();
   let recipient;
   try {
     recipient = Address.fromHex(raw);
   } catch {
-    return { status: 400, ok: false, error: "invalid address" };
+    recipient = null;
   }
   if (!recipient) return { status: 400, ok: false, error: "invalid address" };
 
@@ -42,14 +66,16 @@ export async function sendDrip({ address, ip }) {
   }
 
   const drip = toNum(config.dripAmount);
-  const fee = toNum(config.txFee);
   const reserve = toNum(snap.reserve);
-  if (reserve < config.minReserve + drip + fee) {
+  if (reserve < config.minReserve + drip + 0.01) {
     return { status: 503, ok: false, error: "faucet empty" };
   }
   if (store.remainingWeek() < drip) {
     return { status: 503, ok: false, error: "weekly faucet budget empty" };
   }
+
+  const amount = Wart.parse(config.dripAmount);
+  if (!amount) return { status: 500, ok: false, error: "invalid drip amount" };
 
   let nodeUrl;
   try {
@@ -58,33 +84,27 @@ export async function sendDrip({ address, ip }) {
     return { status: 503, ok: false, error: String(err.message || err) };
   }
 
-  const api = new WarthogApi(nodeUrl);
   let tx;
   try {
+    const api = new WarthogApi(nodeUrl);
     const ctx = await api.createTransactionContext(RoundedFee.min(), NonceId.random());
-    tx = ctx.transferWart(config.account, recipient, Wart.parse(config.dripAmount));
+    tx = ctx.transferWart(config.account, recipient, amount);
   } catch (err) {
     return { status: 500, ok: false, error: `tx build failed: ${err.message || err}` };
   }
 
   let result;
   try {
-    result = await api.submitTransaction(tx);
+    result = await broadcast(nodeUrl, tx);
   } catch (err) {
     return { status: 500, ok: false, error: `broadcast failed: ${err.message || err}` };
   }
 
-  if (result?.success === false || result?.error) {
-    return { status: 500, ok: false, error: result?.error || "node rejected tx" };
+  if (!result.success) {
+    return { status: 500, ok: false, error: result.error || "node rejected tx" };
   }
 
-  const txId =
-    result?.txHash ||
-    result?.txId ||
-    result?.data?.txHash ||
-    result?.signedSnapshot?.txId ||
-    null;
-
+  const txId = txHashFrom(result);
   store.record({ address: wallet, ip: ip || "unknown", amount: drip });
   await balance.poll();
 
