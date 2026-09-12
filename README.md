@@ -2,32 +2,30 @@
 
 Not an official Warthog Network service.
 
-A small starter faucet so a new mainnet wallet can exist on-chain and pay a fee. Donate or mine into the same address to refill it.
+Single-process sibling of [warthog-network/testnet-faucet](https://github.com/warthog-network/testnet-faucet). Same boot contract: the hot-wallet address is derived from `FAUCET_HEX_PRIVKEY` and is never hard-coded.
 
-## What it does
+## Policy
 
-- Fixed drip (default 2 WART), one claim per wallet
-- Weekly budget (default 10 WART) and a reserve floor
-- Official `warthog-js` for address checks and signed transfers
-- Broadcasts to `POST /transaction/add` so the node `txHash` is kept
-- Public mainnet nodes, with `https://warthognode.duckdns.org` first
+- 2 WART per wallet, once
+- 1 claim per IP per 24 hours
+- Weekly budget 10 WART, reserve floor 1 WART
+- Official `warthog-js`, pinned
+- Broadcast to `POST /transaction/add`; claim is recorded only if the node returns a txHash
 
 ## Run
 
 ```bash
 npm install
-npm run gen-key          # prints FAUCET_HEX_PRIVKEY + address
-# put the key in the host environment only
-npm start
+npm run gen-key          # prints FAUCET_HEX_PRIVKEY and the derived address
+# put the key in the host environment only (chmod 600)
+# run a local wart-node, or set NODE_URL to a node you trust
+NODE_ENV=production NODE_URL=http://127.0.0.1:3001 npm start
 ```
-
-Required env: `FAUCET_HEX_PRIVKEY` (64 hex chars). See `.env.example`.
 
 Then send WART to the derived address. Until the pot is funded, claims return `faucet empty`.
 
-## Hosting
+See `docs/deploy.md` for systemd + nginx, the same shape as the official testnet faucet.
 
-- **Render** (`render.yaml`): better for a long-lived process and `data/claims.json`
-- **Vercel**: works as a serverless Express app at `api/index.js`. Claims are in-memory per instance.
+Do not host drips on Vercel. Serverless isolates do not share claim state.
 
-Never commit the private key. The faucet address is public; treat the wallet as a small hot pot.
+Never commit the private key. Treat the wallet as a small hot pot.
