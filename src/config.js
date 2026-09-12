@@ -43,7 +43,7 @@ if (!/^https?:\/\//i.test(nodeUrl)) {
 }
 
 const dripAmount = process.env.DRIP_AMOUNT || "2";
-const weeklyBudget = numOr(process.env.WEEKLY_BUDGET, 10);
+const weeklyBudget = numOr(process.env.WEEKLY_BUDGET, 100);
 const minReserve = numOr(process.env.MIN_RESERVE, 1);
 if (!/^\d+(\.\d{1,8})?$/.test(String(dripAmount))) {
   throw new Error("DRIP_AMOUNT must be a decimal WART amount");

@@ -15,10 +15,10 @@ services:
       - key: DRIP_AMOUNT
         value: "2"
       - key: WEEKLY_BUDGET
-        value: "10"
+        value: "100"
       - key: MIN_RESERVE
         value: "1"
       - key: TRUST_PROXY
-        value: loopback
+        value: "true"
       - key: FAUCET_HEX_PRIVKEY
         sync: false
