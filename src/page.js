@@ -6,65 +6,46 @@ function esc(s) {
     .replaceAll('"', """);
 }
 
-export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, qr, configured = true }) {
-  const reserveLabel = reserve ?? (configured ? "waiting on node" : "not funded yet");
-  const nodeLabel = !configured ? "awaiting operator key" : nodeOk ? "node live" : "node unreachable";
-  const claimDisabled = configured ? "" : "disabled";
+export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, qr }) {
+  const qrSrc = typeof qr === "string" && qr.startsWith("data:image/") ? qr : "";
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Community WART faucet</title>
-<meta name="description" content="Community mainnet Warthog faucet. Starter WART, donate, or mine to the pot. Not an official Warthog Network service."/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<meta name="description" content="Community mainnet Warthog faucet. Not an official Warthog Network service."/>
 <style>
-  :root {
-    --bg: #07080d;
-    --card: #0e1118;
-    --line: #242a38;
-    --gold: #f5c400;
-    --text: #f4f5f7;
-    --muted: #8b93a3;
-    --ok: #3ddc84;
-    --err: #ff6b6b;
-  }
+  :root { color-scheme: dark; --bg:#07080d; --card:#0e1118; --line:#242a38; --gold:#f5c400; --text:#f4f5f7; --muted:#8b93a3; --ok:#3ddc84; --err:#ff6b6b; }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    background: radial-gradient(1200px 500px at 80% -10%, rgba(245,196,0,.08), transparent 50%), var(--bg);
-    color: var(--text);
-  }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.4rem; border-bottom: 1px solid var(--line); }
-  .brand { display: flex; align-items: center; gap: .7rem; font-weight: 700; }
-  .dot { width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: #111; display: grid; place-items: center; }
-  nav a { color: var(--gold); text-decoration: none; margin-left: 1rem; font-size: .82rem; font-weight: 600; }
-  main { max-width: 44rem; margin: 0 auto; padding: 2.2rem 1.2rem 4rem; }
-  .kicker { color: var(--gold); font-size: .72rem; letter-spacing: .14em; font-weight: 700; text-transform: uppercase; }
-  h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.1; margin: .35rem 0 .7rem; }
-  .lede { color: var(--muted); font-size: 1.02rem; line-height: 1.55; margin: 0 0 1.4rem; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; margin: 0 0 1.3rem; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: .7rem; padding: .85rem .9rem; }
-  .stat b { display: block; font-size: 1.05rem; }
-  .stat span { color: var(--muted); font-size: .75rem; }
-  section { background: var(--card); border: 1px solid var(--line); border-radius: 1rem; padding: 1.2rem; margin: 0 0 1rem; }
-  label { display: block; font-size: .8rem; color: var(--muted); margin: 0 0 .4rem; font-weight: 600; }
-  input { width: 100%; padding: .7rem .75rem; border-radius: .55rem; border: 1px solid var(--line); background: #07080d; color: var(--text); font: inherit; }
-  button.gold { margin-top: .85rem; width: 100%; padding: .75rem; border: 0; border-radius: 999px; background: var(--gold); color: #111; font: inherit; font-weight: 700; cursor: pointer; }
-  button.gold:disabled { opacity: .55; cursor: not-allowed; }
-  button.ghost { margin-top: .55rem; padding: .35rem .65rem; border-radius: .4rem; border: 1px solid var(--line); background: transparent; color: var(--text); font: inherit; font-size: .8rem; cursor: pointer; }
-  .addr { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; word-break: break-all; background: #07080d; border: 1px solid var(--line); border-radius: .55rem; padding: .7rem; }
-  .row { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
-  img.qr { width: 148px; height: 148px; background: #fff; padding: 6px; border-radius: .45rem; }
-  pre { white-space: pre-wrap; margin: .8rem 0 0; font-size: .82rem; }
-  .ok { color: var(--ok); }
-  .err { color: var(--err); }
-  footer { color: var(--muted); font-size: .78rem; line-height: 1.5; }
-  footer a { color: var(--gold); }
-  @media (max-width: 640px) { .stats { grid-template-columns: 1fr; } nav { display: none; } }
+  body { margin:0; font-family: ui-sans-serif, system-ui, sans-serif; background: radial-gradient(1200px 500px at 80% -10%, rgba(245,196,0,.08), transparent 50%), var(--bg); color: var(--text); }
+  header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.4rem; border-bottom:1px solid var(--line); }
+  .brand { display:flex; align-items:center; gap:.7rem; font-weight:700; }
+  .dot { width:28px; height:28px; border-radius:50%; background:var(--gold); color:#111; display:grid; place-items:center; }
+  nav a { color:var(--gold); text-decoration:none; margin-left:1rem; font-size:.82rem; font-weight:600; }
+  main { max-width:44rem; margin:0 auto; padding:2.2rem 1.2rem 4rem; }
+  .kicker { color:var(--gold); font-size:.72rem; letter-spacing:.14em; font-weight:700; text-transform:uppercase; }
+  h1 { font-size:clamp(1.8rem,4vw,2.6rem); line-height:1.1; margin:.35rem 0 .7rem; }
+  .lede { color:var(--muted); font-size:1.02rem; line-height:1.55; margin:0 0 1.4rem; }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin:0 0 1.3rem; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:.7rem; padding:.85rem .9rem; }
+  .stat b { display:block; font-size:1.05rem; }
+  .stat span { color:var(--muted); font-size:.75rem; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:1rem; padding:1.2rem; margin:0 0 1rem; }
+  label { display:block; font-size:.8rem; color:var(--muted); margin:0 0 .4rem; font-weight:600; }
+  input { width:100%; padding:.7rem .75rem; border-radius:.55rem; border:1px solid var(--line); background:#07080d; color:var(--text); font:inherit; }
+  button.gold { margin-top:.85rem; width:100%; padding:.75rem; border:0; border-radius:999px; background:var(--gold); color:#111; font:inherit; font-weight:700; cursor:pointer; }
+  button.gold:disabled { opacity:.55; cursor:not-allowed; }
+  button.ghost { margin-top:.55rem; padding:.35rem .65rem; border-radius:.4rem; border:1px solid var(--line); background:transparent; color:var(--text); font:inherit; font-size:.8rem; cursor:pointer; }
+  .addr { font-family:ui-monospace,Menlo,monospace; font-size:.8rem; word-break:break-all; background:#07080d; border:1px solid var(--line); border-radius:.55rem; padding:.7rem; }
+  .row { display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap; }
+  img.qr { width:148px; height:148px; background:#fff; padding:6px; border-radius:.45rem; }
+  pre { white-space:pre-wrap; margin:.8rem 0 0; font-size:.82rem; }
+  .ok { color:var(--ok); }
+  .err { color:var(--err); }
+  footer { color:var(--muted); font-size:.78rem; line-height:1.5; }
+  footer a { color:var(--gold); }
+  @media (max-width:640px) { .stats { grid-template-columns:1fr; } nav { display:none; } }
 </style>
 </head>
 <body>
@@ -77,41 +58,41 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   </nav>
 </header>
 <main>
-  <p class="kicker">Mainnet \u00b7 community pot \u00b7 not official</p>
+  <p class="kicker">Mainnet · community pot · not official</p>
   <h1>Starter WART so you can use the chain.</h1>
   <p class="lede">
     One drip per wallet. Donate or point a miner at the same address to keep the pot alive.
-    Built with official <code>warthog-js</code> against public mainnet nodes.
+    Built with official <code>warthog-js</code> against a local or operator-chosen mainnet node.
     This is not operated by Warthog Network.
   </p>
   <div class="stats">
     <div class="stat"><b>${esc(drip)} WART</b><span>per wallet, once</span></div>
-    <div class="stat"><b>${esc(reserveLabel)}</b><span>reserve</span></div>
-    <div class="stat"><b>${esc(weekLeft)} / ${esc(weekMax)}</b><span>${esc(nodeLabel)} \u00b7 week budget</span></div>
+    <div class="stat"><b>${esc(reserve ?? "waiting on node")}</b><span>reserve</span></div>
+    <div class="stat"><b>${esc(weekLeft)} / ${esc(weekMax)}</b><span>${nodeOk ? "node live" : "node unreachable"} · week budget</span></div>
   </div>
   <section>
     <label for="addr">Your mainnet address</label>
     <input id="addr" autocomplete="off" spellcheck="false" placeholder="48-character hex"/>
-    <button class="gold" id="go" ${claimDisabled}>Request ${esc(drip)} WART</button>
-    <pre id="out" ${configured ? "hidden" : ""}>${configured ? "" : "Operator: set FAUCET_HEX_PRIVKEY on the host, then fund the address below."}</pre>
+    <button class="gold" id="go">Request ${esc(drip)} WART</button>
+    <pre id="out" hidden></pre>
   </section>
   <section>
     <div class="row">
       <div style="flex:1">
         <label>Donate or mine to this address</label>
-        <div class="addr" id="faucet">${esc(address || "address appears after the operator key is set")}</div>
+        <div class="addr" id="faucet">${esc(address)}</div>
         <button class="ghost" id="copy">Copy</button>
-        ${address ? `\u00b7 <a href="https://wartscan.io/account/${esc(address)}" style="color:var(--gold);font-size:.85rem">wartscan.io</a>` : ""}
+        · <a href="https://wartscan.io/account/${esc(address)}" style="color:var(--gold);font-size:.85rem">wartscan.io</a>
         <p class="lede" style="margin:.8rem 0 0;font-size:.88rem">Miner payout field: paste that address. Janushash needs CPU + GPU.</p>
       </div>
-      ${qr ? `<img class="qr" alt="QR" src="${qr}"/>` : ""}
+      ${qrSrc ? `<img class="qr" alt="QR" src="${qrSrc}"/>` : ""}
     </div>
   </section>
   <footer>
     Community faucet. No accounts, no cards, no email.
     Official project: <a href="https://warthog.network">warthog.network</a>
-    \u00b7 Discord <a href="https://discord.gg/QMDV8bGTdQ">invite</a>
-    \u00b7 Code <a href="https://github.com/trillioncapitaltoronto/wart-faucet">github</a>
+    · Discord <a href="https://discord.gg/QMDV8bGTdQ">invite</a>
+    · Code <a href="https://github.com/trillioncapitaltoronto/wart-faucet">github</a>
   </footer>
 </main>
 <script>
