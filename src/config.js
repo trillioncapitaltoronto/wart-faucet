@@ -1,5 +1,3 @@
-import { Account } from "warthog-js";
-
 function required(name) {
   const v = process.env[name];
   if (!v || !String(v).trim()) throw new Error(`Missing required env var: ${name}`);
@@ -16,9 +14,34 @@ function numOr(value, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const BUILTIN_NODES = [
+  "https://warthognode.duckdns.org",
+  "http://65.87.7.86:3001",
+  "http://217.182.64.43:3001",
+  "http://185.209.228.16:3001",
+  "http://89.117.150.162:3001",
+];
+
 let cached;
 
-export function getConfig() {
+export function hasFaucetKey() {
+  const v = process.env.FAUCET_HEX_PRIVKEY;
+  return Boolean(v && String(v).trim());
+}
+
+export function publicSettings() {
+  return {
+    network: (process.env.NETWORK || "mainnet").toLowerCase(),
+    dripAmount: String(process.env.DRIP_AMOUNT || "2"),
+    weeklyBudget: numOr(process.env.WEEKLY_BUDGET, 10),
+    minReserve: numOr(process.env.MIN_RESERVE, 1),
+    faucetAddress: process.env.FAUCET_ADDRESS
+      ? String(process.env.FAUCET_ADDRESS).trim().toLowerCase()
+      : "28dbe185c8c383cb85e7b2b5d32ad03a5f4eda9144e5aa4a",
+  };
+}
+
+export async function getConfig() {
   if (cached) return cached;
 
   const hexPrivKey = required("FAUCET_HEX_PRIVKEY").toLowerCase();
@@ -26,20 +49,19 @@ export function getConfig() {
     throw new Error("FAUCET_HEX_PRIVKEY must be 64 hex characters.");
   }
 
+  const { Account } = await import("warthog-js");
   const account = Account.fromPrivateKeyHex(hexPrivKey);
-  const FALLBACK_NODES = [
-    process.env.NODE_URL,
-    "https://warthognode.duckdns.org",
-    "http://65.87.7.86:3001",
-    "http://217.182.64.43:3001",
-    "http://185.209.228.16:3001",
-  ].filter(Boolean);
+
+  const extra = (process.env.NODE_URL || "")
+    .split(",")
+    .map((u) => u.trim().replace(/\/$/, ""))
+    .filter(Boolean);
 
   cached = Object.freeze({
     account,
     faucetAddress: account.address.hex,
     network: (process.env.NETWORK || "mainnet").toLowerCase(),
-    nodes: [...new Set(FALLBACK_NODES.map((u) => String(u).replace(/\/$/, "")))],
+    nodes: [...new Set([...extra, ...BUILTIN_NODES])],
     port: intOr(process.env.PORT, 3000),
     dripAmount: String(process.env.DRIP_AMOUNT || "2"),
     weeklyBudget: numOr(process.env.WEEKLY_BUDGET, 10),
@@ -48,13 +70,8 @@ export function getConfig() {
     ipRateLimit: intOr(process.env.IP_RATE_LIMIT, 1),
     ipWindowMs: intOr(process.env.IP_WINDOW_HOURS, 24) * 3600 * 1000,
     claimsFile: process.env.CLAIMS_FILE || "./data/claims.json",
-    trustProxy: process.env.TRUST_PROXY || "true",
     explorerTx: (id) => `https://wartscan.io/tx/${id}`,
     explorerAddr: (a) => `https://wartscan.io/account/${a}`,
   });
   return cached;
-}
-
-export function hasFaucetKey() {
-  return Boolean(process.env.FAUCET_HEX_PRIVKEY && String(process.env.FAUCET_HEX_PRIVKEY).trim());
 }
