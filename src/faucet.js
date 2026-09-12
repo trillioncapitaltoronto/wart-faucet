@@ -28,16 +28,16 @@ async function broadcast(nodeUrl, tx) {
 
 export async function sendDrip({ address, ip }) {
   const raw = parseRecipient(address);
-  if (!raw) return { status: 400, ok: false, error: "invalid address" };
+  if (!raw) return { status: 400, ok: false, error: "Not a valid Warthog address (48 hex chars + checksum)" };
 
   const { Address } = await import("warthog-js");
   let recipient;
   try {
     recipient = Address.fromHex(raw);
   } catch {
-    return { status: 400, ok: false, error: "invalid address" };
+    return { status: 400, ok: false, error: "Not a valid Warthog address (48 hex chars + checksum)" };
   }
-  if (!recipient) return { status: 400, ok: false, error: "invalid address" };
+  if (!recipient) return { status: 400, ok: false, error: "Not a valid Warthog address (48 hex chars + checksum)" };
 
   const wallet = recipient.hex.toLowerCase();
   if (wallet === config.faucetAddress.toLowerCase()) {
@@ -107,7 +107,7 @@ export async function sendDrip({ address, ip }) {
       return { status: 500, ok: false, error: result.error || "node rejected tx" };
     }
 
-    store.record({ address: wallet, amount: fromE8(dripE8) });
+    store.record({ address: wallet, amount: fromE8(dripE8), txHash: result.txHash });
     ratelimit.record(ip || "unknown");
     await balance.poll();
 

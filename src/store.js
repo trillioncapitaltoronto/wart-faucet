@@ -3,7 +3,7 @@ import path from "node:path";
 import { config } from "./config.js";
 
 function empty() {
-  return { wallets: {}, weekStart: weekKey(Date.now()), weekSpentE8: "0" };
+  return { wallets: {}, weekStart: weekKey(Date.now()), weekSpentE8: "0", log: [] };
 }
 
 function weekKey(ms) {
@@ -36,6 +36,7 @@ function load() {
       wallets: raw.wallets && typeof raw.wallets === "object" ? raw.wallets : {},
       weekStart: raw.weekStart || weekKey(Date.now()),
       weekSpentE8: String(raw.weekSpentE8 ?? toE8(raw.weekSpent || 0)),
+      log: Array.isArray(raw.log) ? raw.log.slice(0, 100) : [],
     };
   } catch {
     return empty();
@@ -90,12 +91,23 @@ export const store = {
   remainingWeek(now = Date.now()) {
     return fromE8(store.remainingWeekE8(now));
   },
-  record({ address, amount, now = Date.now() }) {
+  record({ address, amount, txHash, now = Date.now() }) {
     const s = getState();
     rollWeek(now);
     s.wallets[address] = now;
     s.weekSpentE8 = String(BigInt(s.weekSpentE8 || "0") + toE8(amount));
+    const row = {
+      address,
+      amount: String(amount),
+      txHash: txHash || null,
+      createdAt: new Date(now).toISOString(),
+    };
+    s.log = [row, ...(s.log || [])].slice(0, 100);
     save(s);
+  },
+  recent(limit = 50) {
+    const n = Math.min(100, Math.max(1, Number(limit) || 50));
+    return (getState().log || []).slice(0, n);
   },
   snapshot(now = Date.now()) {
     rollWeek(now);
