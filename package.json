@@ -1,0 +1,21 @@
+{
+  "name": "wart-faucet",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mainnet Warthog (WART) faucet. Fixed drip, one claim per wallet, weekly budget.",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "gen-key": "node scripts/gen-key.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "warthog-js": "github:warthog-network/warthog-js"
+  }
+}
