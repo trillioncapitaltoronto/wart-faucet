@@ -6,8 +6,18 @@ function esc(s) {
     .replaceAll('"', """);
 }
 
-export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, qr }) {
+export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, qr, claims = [] }) {
   const qrSrc = typeof qr === "string" && qr.startsWith("data:image/") ? qr : "";
+  const logRows = (claims || []).length
+    ? claims.map((c) => {
+        const shortA = String(c.address || "");
+        const shown = shortA.length > 16 ? shortA.slice(0, 10) + "…" + shortA.slice(-6) : shortA;
+        const tx = c.txHash || "";
+        const txShown = tx.length > 10 ? tx.slice(0, 10) + "…" : tx;
+        const href = tx ? `https://wartscan.io/tx/${esc(tx)}` : "#";
+        return `<tr><td class="mono">${esc(shown)}</td><td class="mono">${esc(c.amount)}</td><td class="muted">${esc(c.createdAt || "")}</td><td class="mono">${tx ? `<a href="${href}">${esc(txShown)}</a>` : "—"}</td></tr>`;
+      }).join("")
+    : `<tr><td colspan="4" class="muted">No claims yet.</td></tr>`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -44,6 +54,11 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   .ok { color:var(--ok); }
   .err { color:var(--err); }
   footer { color:var(--muted); font-size:.78rem; line-height:1.5; }
+  table { width:100%; border-collapse:collapse; font-size:.82rem; }
+  th, td { text-align:left; padding:.45rem 0; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; }
+  .mono { font-family:ui-monospace,Menlo,monospace; word-break:break-all; }
+  table a { color:var(--gold); }
   footer a { color:var(--gold); }
   @media (max-width:640px) { .stats { grid-template-columns:1fr; } nav { display:none; } }
 </style>
@@ -88,6 +103,14 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
       ${qrSrc ? `<img class="qr" alt="QR" src="${qrSrc}"/>` : ""}
     </div>
   </section>
+  <section>
+    <label>Public log</label>
+    <p class="lede" style="margin:0 0 .6rem;font-size:.88rem">Completed claims, most recent first. Address and tx only — no IPs.</p>
+    <table id="log">
+      <thead><tr><th>Address</th><th>Amount</th><th>When</th><th>Tx</th></tr></thead>
+      <tbody id="log-body">${logRows}</tbody>
+    </table>
+  </section>
   <footer>
     Community faucet. No accounts, no cards, no email.
     Official project: <a href="https://warthog.network">warthog.network</a>
@@ -115,6 +138,7 @@ document.getElementById("go").onclick = async () => {
     out.textContent = b.ok
       ? ("Sent " + b.amount + " WART" + (b.explorerUrl ? "\\n" + b.explorerUrl : ""))
       : ("Error: " + (b.error || r.status));
+    if (b.ok) refreshLog();
   } catch (e) {
     out.className = "err";
     out.textContent = e.message;
@@ -122,6 +146,22 @@ document.getElementById("go").onclick = async () => {
     btn.disabled = false;
   }
 };
+async function refreshLog() {
+  try {
+    const r = await fetch("/api/log?limit=20");
+    const j = await r.json();
+    const body = document.getElementById("log-body");
+    if (!j.claims || !j.claims.length) { body.innerHTML = '<tr><td colspan="4" class="muted">No claims yet.</td></tr>'; return; }
+    body.innerHTML = j.claims.map((c) => {
+      const a = String(c.address || "");
+      const shown = a.length > 16 ? a.slice(0,10) + "\u2026" + a.slice(-6) : a;
+      const tx = c.tx_hash || "";
+      const txShown = tx.length > 10 ? tx.slice(0,10) + "\u2026" : tx;
+      const href = c.explorerUrl || (tx ? ("https://wartscan.io/tx/" + tx) : "#");
+      return '<tr><td class="mono">' + shown + '</td><td class="mono">' + (c.amount_wart || "") + '</td><td class="muted">' + (c.created_at || "") + '</td><td class="mono">' + (tx ? ('<a href="' + href + '">' + txShown + '</a>') : "\u2014") + '</td></tr>';
+    }).join("");
+  } catch (e) {}
+}
 </script>
 </body>
 </html>`;
