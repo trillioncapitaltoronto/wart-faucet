@@ -6,9 +6,10 @@ function esc(s) {
     .replaceAll('"', """);
 }
 
-export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, qr }) {
-  const reserveLabel = reserve ?? "waiting on node";
-  const nodeLabel = nodeOk ? "node live" : "node unreachable";
+export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, qr, configured = true }) {
+  const reserveLabel = reserve ?? (configured ? "waiting on node" : "not funded yet");
+  const nodeLabel = !configured ? "awaiting operator key" : nodeOk ? "node live" : "node unreachable";
+  const claimDisabled = configured ? "" : "disabled";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -76,7 +77,7 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   </nav>
 </header>
 <main>
-  <p class="kicker">Mainnet · community pot · not official</p>
+  <p class="kicker">Mainnet \u00b7 community pot \u00b7 not official</p>
   <h1>Starter WART so you can use the chain.</h1>
   <p class="lede">
     One drip per wallet. Donate or point a miner at the same address to keep the pot alive.
@@ -86,21 +87,21 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   <div class="stats">
     <div class="stat"><b>${esc(drip)} WART</b><span>per wallet, once</span></div>
     <div class="stat"><b>${esc(reserveLabel)}</b><span>reserve</span></div>
-    <div class="stat"><b>${esc(weekLeft)} / ${esc(weekMax)}</b><span>${esc(nodeLabel)} · week budget</span></div>
+    <div class="stat"><b>${esc(weekLeft)} / ${esc(weekMax)}</b><span>${esc(nodeLabel)} \u00b7 week budget</span></div>
   </div>
   <section>
     <label for="addr">Your mainnet address</label>
     <input id="addr" autocomplete="off" spellcheck="false" placeholder="48-character hex"/>
-    <button class="gold" id="go">Request ${esc(drip)} WART</button>
-    <pre id="out" hidden></pre>
+    <button class="gold" id="go" ${claimDisabled}>Request ${esc(drip)} WART</button>
+    <pre id="out" ${configured ? "hidden" : ""}>${configured ? "" : "Operator: set FAUCET_HEX_PRIVKEY on the host, then fund the address below."}</pre>
   </section>
   <section>
     <div class="row">
       <div style="flex:1">
         <label>Donate or mine to this address</label>
-        <div class="addr" id="faucet">${esc(address)}</div>
+        <div class="addr" id="faucet">${esc(address || "address appears after the operator key is set")}</div>
         <button class="ghost" id="copy">Copy</button>
-        · <a href="https://wartscan.io/account/${esc(address)}" style="color:var(--gold);font-size:.85rem">wartscan.io</a>
+        ${address ? `\u00b7 <a href="https://wartscan.io/account/${esc(address)}" style="color:var(--gold);font-size:.85rem">wartscan.io</a>` : ""}
         <p class="lede" style="margin:.8rem 0 0;font-size:.88rem">Miner payout field: paste that address. Janushash needs CPU + GPU.</p>
       </div>
       ${qr ? `<img class="qr" alt="QR" src="${qr}"/>` : ""}
@@ -109,8 +110,8 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   <footer>
     Community faucet. No accounts, no cards, no email.
     Official project: <a href="https://warthog.network">warthog.network</a>
-    · Discord <a href="https://discord.gg/QMDV8bGTdQ">invite</a>
-    · Code <a href="https://github.com/trillioncapitaltoronto/wart-faucet">github</a>
+    \u00b7 Discord <a href="https://discord.gg/QMDV8bGTdQ">invite</a>
+    \u00b7 Code <a href="https://github.com/trillioncapitaltoronto/wart-faucet">github</a>
   </footer>
 </main>
 <script>
@@ -121,7 +122,7 @@ document.getElementById("go").onclick = async () => {
   btn.disabled = true;
   out.hidden = false;
   out.className = "";
-  out.textContent = "Sending…";
+  out.textContent = "Sending\u2026";
   try {
     const r = await fetch("/api/drip", {
       method: "POST",
