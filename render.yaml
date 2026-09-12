@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: wart-faucet
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NETWORK
+        value: mainnet
+      - key: NODE_URL
+        value: https://warthognode.duckdns.org
+      - key: DRIP_AMOUNT
+        value: "2"
+      - key: WEEKLY_BUDGET
+        value: "10"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: FAUCET_HEX_PRIVKEY
+        sync: false

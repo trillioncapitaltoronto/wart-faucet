@@ -45,9 +45,9 @@ export const balance = {
     return last;
   },
   async start() {
-    const first = await poll();
-    if (first.error) throw new Error(`Cannot reach a Warthog node: ${first.error}`);
+    await poll();
     setInterval(poll, 60_000);
+    return last;
   },
 };
 
