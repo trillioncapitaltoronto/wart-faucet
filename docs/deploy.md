@@ -1,55 +1,49 @@
 # Deploy
 
-Copy the official testnet faucet shape: one Node process, a local `wart-node`, nginx or Cloudflare in front.
+One Node process. Same shape as testnet-faucet.warthog.network.
 
-## 1. Key
+## Fastest public host (Render)
 
-```bash
-npm run gen-key
-```
-
-Put `FAUCET_HEX_PRIVKEY` in `/etc/wart-faucet.env` owned by root, mode `0600`. Fund the printed address.
-
-## 2. Node
-
-Run `wart-node` on the same box and point the faucet at it:
+1. New Web Service from `trillioncapitaltoronto/wart-faucet`
+2. Build `npm install` / Start `npm start`
+3. Env:
 
 ```
+NODE_ENV=production
+NETWORK=mainnet
+NODE_URL=https://node.wartscan.io
+FAUCET_HEX_PRIVKEY=<64 hex from npm run gen-key>
+DRIP_AMOUNT=2
+WEEKLY_BUDGET=10
+MIN_RESERVE=1
+TRUST_PROXY=true
+```
+
+4. After first boot, copy `faucetAddress` from `/api/status`
+5. Send at least 3 WART to that address
+6. Publish the Render URL
+
+A local `wart-node` on `127.0.0.1:3001` is better than the public HTTPS node. Use that when you have a VPS.
+
+## VPS / systemd
+
+```
+FAUCET_HEX_PRIVKEY=...
+NETWORK=mainnet
+NODE_ENV=production
 NODE_URL=http://127.0.0.1:3001
+PORT=3000
+TRUST_PROXY=loopback
 ```
 
-Public HTTP peers are a last resort.
+Unit file: user `wart-faucet`, `EnvironmentFile=/etc/wart-faucet.env` mode 0600, `ExecStart=/usr/bin/node src/server.js`.
 
-## 3. systemd
+Nginx terminates TLS and sets real_ip. Proxy to `127.0.0.1:3000`.
 
-```
-[Unit]
-Description=Community mainnet WART faucet
-After=network.target
-
-[Service]
-Type=simple
-User=wart-faucet
-WorkingDirectory=/opt/wart-faucet
-EnvironmentFile=/etc/wart-faucet.env
-Environment=NODE_ENV=production
-ExecStart=/usr/bin/node src/server.js
-Restart=on-failure
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-```
-
-## 4. nginx
-
-Terminate TLS. Set `real_ip` from Cloudflare or the immediate peer. Proxy to `127.0.0.1:3000`. Then `TRUST_PROXY=loopback` is correct.
-
-## 5. Check
+## Ready check
 
 ```
-curl -s localhost:3000/api/status
-curl -s localhost:3000/healthz
+curl -s $HOST/api/status
 ```
 
-`health.nodeReachable` must be true and `reserve` must cover `MIN_RESERVE + DRIP_AMOUNT` before you publish the URL.
+Need `health.nodeReachable: true` and `reserve` covering `MIN_RESERVE + DRIP_AMOUNT`.

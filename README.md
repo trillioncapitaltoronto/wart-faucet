@@ -2,30 +2,34 @@
 
 Not an official Warthog Network service.
 
-Single-process sibling of [warthog-network/testnet-faucet](https://github.com/warthog-network/testnet-faucet). Same boot contract: the hot-wallet address is derived from `FAUCET_HEX_PRIVKEY` and is never hard-coded.
+Single-process sibling of the official testnet faucet. Address is derived from `FAUCET_HEX_PRIVKEY` and is never hard-coded.
 
 ## Policy
 
 - 2 WART per wallet, once
 - 1 claim per IP per 24 hours
 - Weekly budget 10 WART, reserve floor 1 WART
+- Public claim log (address + tx only, links to wartscan.io)
 - Official `warthog-js`, pinned
-- Broadcast to `POST /transaction/add`; claim is recorded only if the node returns a txHash
+- Broadcast to `POST /transaction/add`; claim recorded only if the node returns a txHash
 
 ## Run
 
 ```bash
 npm install
-npm run gen-key          # prints FAUCET_HEX_PRIVKEY and the derived address
-# put the key in the host environment only (chmod 600)
-# run a local wart-node, or set NODE_URL to a node you trust
-NODE_ENV=production NODE_URL=http://127.0.0.1:3001 npm start
+npm run gen-key
+# put FAUCET_HEX_PRIVKEY in the host env only (chmod 600)
+NODE_ENV=production NODE_URL=https://node.wartscan.io npm start
 ```
 
-Then send WART to the derived address. Until the pot is funded, claims return `faucet empty`.
+Fund the printed address with at least 3 WART. Then:
 
-See `docs/deploy.md` for systemd + nginx, the same shape as the official testnet faucet.
+```bash
+curl -s localhost:3000/api/status
+curl -s localhost:3000/api/log
+curl -s localhost:3000/healthz
+```
 
-Do not host drips on Vercel. Serverless isolates do not share claim state.
+See `docs/deploy.md`. Do not host drips on Vercel.
 
-Never commit the private key. Treat the wallet as a small hot pot.
+Never commit the private key.
