@@ -37,9 +37,20 @@ if (network !== "mainnet") {
   throw new Error(`This faucet is mainnet-only. Refusing NETWORK=${network}.`);
 }
 
-const nodeUrl = (process.env.NODE_URL || "https://node.wartscan.io")
-  .trim()
-  .replace(/\/$/, "");
+const nodeUrl = (process.env.NODE_URL || "https://node.wartscan.io").trim().replace(/\/$/, "");
+if (!/^https?:\/\//i.test(nodeUrl)) {
+  throw new Error("NODE_URL must be http(s)://");
+}
+
+const dripAmount = process.env.DRIP_AMOUNT || "2";
+const weeklyBudget = numOr(process.env.WEEKLY_BUDGET, 10);
+const minReserve = numOr(process.env.MIN_RESERVE, 1);
+if (!/^\d+(\.\d{1,8})?$/.test(String(dripAmount))) {
+  throw new Error("DRIP_AMOUNT must be a decimal WART amount");
+}
+if (Number(dripAmount) <= 0 || Number(dripAmount) > weeklyBudget) {
+  throw new Error("DRIP_AMOUNT must be > 0 and <= WEEKLY_BUDGET");
+}
 
 const account = Account.fromPrivateKeyHex(hexPrivKey);
 
@@ -49,9 +60,9 @@ export const config = Object.freeze({
   network,
   nodeUrl,
   port: intOr(process.env.PORT, 3000),
-  dripAmount: process.env.DRIP_AMOUNT || "2",
-  weeklyBudget: numOr(process.env.WEEKLY_BUDGET, 10),
-  minReserve: numOr(process.env.MIN_RESERVE, 1),
+  dripAmount,
+  weeklyBudget,
+  minReserve,
   walletWindowMs: intOr(process.env.WALLET_WINDOW_HOURS, 876000) * 3600 * 1000,
   ipRateLimit: intOr(process.env.IP_RATE_LIMIT, 1),
   ipWindowMs: intOr(process.env.IP_WINDOW_HOURS, 24) * 3600 * 1000,

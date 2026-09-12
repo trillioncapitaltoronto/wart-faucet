@@ -22,6 +22,16 @@ app.use(
   }),
 );
 app.use(express.json({ limit: "8kb" }));
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  );
+  next();
+});
 
 app.get("/healthz", (_req, res) => {
   const b = balance.get();
@@ -51,7 +61,8 @@ app.get("/", async (_req, res) => {
       }),
     );
   } catch (err) {
-    res.status(503).type("text").send(`Faucet is not ready: ${err.message}`);
+    console.error(err);
+    res.status(503).type("text").send("Faucet is not ready");
   }
 });
 
