@@ -5,16 +5,19 @@ import { ratelimit } from "./ratelimit.js";
 
 const started = Date.now();
 
-try {
-  await balance.start();
-  ratelimit.startGc();
-} catch (err) {
-  console.error(err.message || err);
-  process.exit(1);
-}
+ratelimit.startGc();
 
-app.listen(config.port, "0.0.0.0", () => {
+const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(
     `mainnet WART faucet ${config.faucetAddress} on :${config.port} via ${config.nodeUrl} (${Date.now() - started}ms)`,
   );
+});
+
+server.on("error", (err) => {
+  console.error(err.message || err);
+  process.exit(1);
+});
+
+balance.start().catch((err) => {
+  console.error(err.message || err);
 });

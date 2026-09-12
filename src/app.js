@@ -35,7 +35,7 @@ app.use((_req, res, next) => {
 
 app.get("/healthz", (_req, res) => {
   const b = balance.get();
-  res.json({ ok: !b.error, nodeReachable: !b.error });
+  res.status(200).json({ ok: true, nodeReachable: !b.error, nodeError: b.error || null });
 });
 
 app.get("/", async (_req, res) => {

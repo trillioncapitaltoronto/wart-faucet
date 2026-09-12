@@ -1,6 +1,6 @@
 import { config } from "./config.js";
 
-const TIMEOUT_MS = 5_000;
+const TIMEOUT_MS = 15_000;
 
 let last = { reserve: null, node: null, checkedAt: 0, error: "not polled" };
 let timer = null;
@@ -40,13 +40,14 @@ export const balance = {
     return last;
   },
   async start() {
-    const first = await poll();
-    if (first.error) {
-      throw new Error(`first balance poll failed: ${first.error} (NODE_URL=${config.nodeUrl})`);
-    }
+    // Bind HTTP first on Render. A slow/down node must not crash the process.
     if (!timer) {
       timer = setInterval(poll, config.balancePollMs);
       if (typeof timer.unref === "function") timer.unref();
+    }
+    const first = await poll();
+    if (first.error) {
+      console.error(`balance poll failed (will retry): ${first.error} (NODE_URL=${config.nodeUrl})`);
     }
     return last;
   },
