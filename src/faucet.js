@@ -1,10 +1,3 @@
-import {
-  Address,
-  NonceId,
-  RoundedFee,
-  WarthogApi,
-  Wart,
-} from "warthog-js";
 import { getConfig } from "./config.js";
 import { balance, pickNode } from "./balance.js";
 import { store } from "./store.js";
@@ -23,10 +16,11 @@ function cleanAddress(input) {
   return raw;
 }
 
-function parseRecipient(input) {
+async function parseRecipient(input) {
   const raw = cleanAddress(input);
   if (raw.length !== 48) return null;
   try {
+    const { Address } = await import("warthog-js");
     return Address.fromHex(raw) || null;
   } catch {
     return null;
@@ -48,8 +42,8 @@ async function broadcast(nodeUrl, tx) {
 }
 
 export async function sendDrip({ address, ip }) {
-  const config = getConfig();
-  const recipient = parseRecipient(address);
+  const config = await getConfig();
+  const recipient = await parseRecipient(address);
   if (!recipient) return { status: 400, ok: false, error: "invalid address" };
 
   const wallet = recipient.hex.toLowerCase();
@@ -74,12 +68,13 @@ export async function sendDrip({ address, ip }) {
   const drip = toNum(config.dripAmount);
   const reserve = toNum(snap.reserve);
   if (reserve < config.minReserve + drip + 0.01) {
-    return { status: 503, ok: false, error: "faucet empty" };
+    return { status: 503, ok: false, error: "faucet empty — donate or mine to the pot" };
   }
   if (store.remainingWeek() < drip) {
     return { status: 503, ok: false, error: "weekly faucet budget empty" };
   }
 
+  const { NonceId, RoundedFee, WarthogApi, Wart } = await import("warthog-js");
   const amount = Wart.parse(config.dripAmount);
   if (!amount) return { status: 500, ok: false, error: "invalid drip amount" };
 
