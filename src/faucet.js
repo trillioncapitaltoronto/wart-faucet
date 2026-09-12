@@ -11,11 +11,37 @@ function parseRecipient(input) {
   return raw;
 }
 
+function toU64(v) {
+  if (typeof v === "bigint") return Number(v);
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && /^\d+$/.test(v)) return Number(v);
+  return null;
+}
+
+function wireTransfer(tx) {
+  const feeE8 = toU64(tx.feeE8);
+  const amountE8 = toU64(tx.wartE8 ?? tx.amountE8);
+  const nonceId = toU64(tx.nonceId);
+  const pinHeight = toU64(tx.pinHeight);
+  if (feeE8 == null || amountE8 == null || nonceId == null || pinHeight == null) {
+    throw new Error("tx missing numeric fields");
+  }
+  return {
+    type: "wartTransfer",
+    pinHeight,
+    nonceId,
+    feeE8,
+    amountE8,
+    toAddr: tx.toAddr,
+    signature65: tx.signature65,
+  };
+}
+
 async function broadcast(nodeUrl, tx) {
   const res = await fetch(`${nodeUrl.replace(/\/$/, "")}/transaction/add`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(tx, (_k, v) => (typeof v === "bigint" ? v.toString() : v)),
+    body: JSON.stringify(wireTransfer(tx)),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   const json = await res.json();
@@ -81,13 +107,14 @@ export async function sendDrip({ address, ip }) {
     }
 
     const { NonceId, RoundedFee, WarthogApi, Wart } = await import("warthog-js");
-    const amount = Wart.parse(config.dripAmount);
+    const amount = Wart.parse(String(config.dripAmount));
     if (!amount) return { status: 500, ok: false, error: "invalid drip amount" };
 
     let tx;
     try {
       const api = new WarthogApi(config.nodeUrl);
-      const ctx = await api.createTransactionContext(RoundedFee.min(), NonceId.random());
+      const fee = RoundedFee.fromE8(9992n, false) || RoundedFee.min();
+      const ctx = await api.createTransactionContext(fee, NonceId.random());
       tx = ctx.transferWart(config.account, recipient, amount);
     } catch (err) {
       return { status: 500, ok: false, error: `tx build failed: ${err.message || err}` };
