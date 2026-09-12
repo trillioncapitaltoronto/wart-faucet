@@ -1,6 +1,6 @@
 import express from "express";
 import QRCode from "qrcode";
-import { getConfig, hasFaucetKey } from "./config.js";
+import { getConfig, hasFaucetKey, publicSettings } from "./config.js";
 import { balance } from "./balance.js";
 import { store } from "./store.js";
 import { sendDrip } from "./faucet.js";
@@ -17,7 +17,23 @@ app.get("/healthz", (_req, res) => {
 
 app.get("/", async (_req, res) => {
   try {
-    const config = getConfig();
+    const pub = publicSettings();
+    if (!hasFaucetKey()) {
+      return res.type("html").send(
+        renderPage({
+          address: pub.faucetAddress || "",
+          reserve: null,
+          drip: pub.dripAmount,
+          weekLeft: pub.weeklyBudget,
+          weekMax: pub.weeklyBudget,
+          nodeOk: false,
+          qr: "",
+          configured: false,
+        }),
+      );
+    }
+
+    const config = await getConfig();
     await balance.start();
     const b = balance.get();
     const snap = store.snapshot();
@@ -36,14 +52,18 @@ app.get("/", async (_req, res) => {
         weekMax: config.weeklyBudget,
         nodeOk: !b.error,
         qr,
+        configured: true,
       }),
     );
   } catch (err) {
-    res.status(503).type("text").send(`Faucet is not configured: ${err.message}`);
+    res.status(503).type("text").send(`Faucet is not ready: ${err.message}`);
   }
 });
 
 app.post("/api/drip", async (req, res) => {
+  if (!hasFaucetKey()) {
+    return res.status(503).json({ ok: false, error: "faucet key not configured" });
+  }
   try {
     const result = await sendDrip({
       address: req.body?.address,
@@ -56,12 +76,25 @@ app.post("/api/drip", async (req, res) => {
 });
 
 app.get("/api/status", async (_req, res) => {
+  const pub = publicSettings();
+  if (!hasFaucetKey()) {
+    return res.status(200).json({
+      official: false,
+      ok: false,
+      configured: false,
+      network: pub.network,
+      dripAmount: pub.dripAmount,
+      weeklyBudget: pub.weeklyBudget,
+      error: "FAUCET_HEX_PRIVKEY is not set",
+    });
+  }
   try {
-    const config = getConfig();
+    const config = await getConfig();
     await balance.start();
     const b = balance.get();
     res.json({
       official: false,
+      configured: true,
       network: config.network,
       faucetAddress: config.faucetAddress,
       reserve: b.reserve,
