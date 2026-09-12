@@ -5,23 +5,32 @@ import {
   WarthogApi,
   Wart,
 } from "warthog-js";
-import { config } from "./config.js";
+import { getConfig } from "./config.js";
 import { balance, pickNode } from "./balance.js";
 import { store } from "./store.js";
+
+const inflight = new Set();
 
 function toNum(s) {
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
 
-function txHashFrom(result) {
-  return (
-    result?.txHash ||
-    result?.txId ||
-    result?.data?.txHash ||
-    result?.data?.txId ||
-    null
-  );
+function cleanAddress(input) {
+  let raw = String(input || "").trim().toLowerCase();
+  if (raw.startsWith("0x")) raw = raw.slice(2);
+  raw = raw.replace(/[^0-9a-f]/g, "");
+  return raw;
+}
+
+function parseRecipient(input) {
+  const raw = cleanAddress(input);
+  if (raw.length !== 48) return null;
+  try {
+    return Address.fromHex(raw) || null;
+  } catch {
+    return null;
+  }
 }
 
 async function broadcast(nodeUrl, tx) {
@@ -39,20 +48,17 @@ async function broadcast(nodeUrl, tx) {
 }
 
 export async function sendDrip({ address, ip }) {
-  const raw = String(address || "").trim().toLowerCase();
-  let recipient;
-  try {
-    recipient = Address.fromHex(raw);
-  } catch {
-    recipient = null;
-  }
+  const config = getConfig();
+  const recipient = parseRecipient(address);
   if (!recipient) return { status: 400, ok: false, error: "invalid address" };
 
   const wallet = recipient.hex.toLowerCase();
   if (wallet === config.faucetAddress.toLowerCase()) {
     return { status: 400, ok: false, error: "cannot drip to the faucet itself" };
   }
-
+  if (inflight.has(wallet)) {
+    return { status: 429, ok: false, error: "claim already in flight" };
+  }
   if (!store.canWallet(wallet)) {
     return { status: 429, ok: false, error: "this wallet already claimed" };
   }
@@ -77,44 +83,52 @@ export async function sendDrip({ address, ip }) {
   const amount = Wart.parse(config.dripAmount);
   if (!amount) return { status: 500, ok: false, error: "invalid drip amount" };
 
-  let nodeUrl;
+  inflight.add(wallet);
   try {
-    nodeUrl = await pickNode();
-  } catch (err) {
-    return { status: 503, ok: false, error: String(err.message || err) };
+    let nodeUrl;
+    try {
+      nodeUrl = await pickNode();
+    } catch (err) {
+      return { status: 503, ok: false, error: String(err.message || err) };
+    }
+
+    let tx;
+    try {
+      const api = new WarthogApi(nodeUrl);
+      const ctx = await api.createTransactionContext(RoundedFee.min(), NonceId.random());
+      tx = ctx.transferWart(config.account, recipient, amount);
+    } catch (err) {
+      return { status: 500, ok: false, error: `tx build failed: ${err.message || err}` };
+    }
+
+    if (!tx || tx.type !== "wartTransfer" || !tx.signature65) {
+      return { status: 500, ok: false, error: "tx build produced an invalid payload" };
+    }
+
+    let result;
+    try {
+      result = await broadcast(nodeUrl, tx);
+    } catch (err) {
+      return { status: 500, ok: false, error: `broadcast failed: ${err.message || err}` };
+    }
+
+    if (!result.success) {
+      return { status: 500, ok: false, error: result.error || "node rejected tx" };
+    }
+
+    store.record({ address: wallet, ip: ip || "unknown", amount: drip });
+    await balance.poll();
+
+    return {
+      status: 200,
+      ok: true,
+      amount: config.dripAmount,
+      txId: result.txHash,
+      explorerUrl: result.txHash ? config.explorerTx(result.txHash) : null,
+      reserveBefore: snap.reserve,
+      reserveAfter: balance.get().reserve,
+    };
+  } finally {
+    inflight.delete(wallet);
   }
-
-  let tx;
-  try {
-    const api = new WarthogApi(nodeUrl);
-    const ctx = await api.createTransactionContext(RoundedFee.min(), NonceId.random());
-    tx = ctx.transferWart(config.account, recipient, amount);
-  } catch (err) {
-    return { status: 500, ok: false, error: `tx build failed: ${err.message || err}` };
-  }
-
-  let result;
-  try {
-    result = await broadcast(nodeUrl, tx);
-  } catch (err) {
-    return { status: 500, ok: false, error: `broadcast failed: ${err.message || err}` };
-  }
-
-  if (!result.success) {
-    return { status: 500, ok: false, error: result.error || "node rejected tx" };
-  }
-
-  const txId = txHashFrom(result);
-  store.record({ address: wallet, ip: ip || "unknown", amount: drip });
-  await balance.poll();
-
-  return {
-    status: 200,
-    ok: true,
-    amount: config.dripAmount,
-    txId,
-    explorerUrl: txId ? config.explorerTx(txId) : null,
-    reserveBefore: snap.reserve,
-    reserveAfter: balance.get().reserve,
-  };
 }

@@ -1,11 +1,12 @@
-import { config } from "./config.js";
+import { getConfig } from "./config.js";
 
 const TIMEOUT_MS = 6000;
 
 let last = { reserve: null, node: null, checkedAt: 0, error: "not polled" };
+let timer = null;
 
 async function fetchBalance(nodeUrl) {
-  const url = `${nodeUrl}/account/${config.faucetAddress}/wart_balance`;
+  const url = `${nodeUrl}/account/${getConfig().faucetAddress}/wart_balance`;
   const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) throw new Error(`HTTP ${res.status} ${nodeUrl}`);
   const body = await res.json();
@@ -16,7 +17,7 @@ async function fetchBalance(nodeUrl) {
 
 async function firstHealthyNode() {
   let lastErr = "no nodes";
-  for (const node of config.nodes) {
+  for (const node of getConfig().nodes) {
     try {
       const reserve = await fetchBalance(node);
       return { node, reserve };
@@ -46,7 +47,8 @@ export const balance = {
   },
   async start() {
     await poll();
-    setInterval(poll, 60_000);
+    if (!timer) timer = setInterval(poll, 60_000);
+    if (typeof timer.unref === "function") timer.unref();
     return last;
   },
 };
