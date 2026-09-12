@@ -16,14 +16,26 @@ function asAmount(value) {
 }
 
 async function pollNode() {
-  const url = `${nodeBase()}/account/${config.faucetAddress}/wart_balance`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-  if (!res.ok) throw new Error(`node HTTP ${res.status}`);
-  const body = await res.json();
-  if (body?.code !== 0) throw new Error(`node code ${body?.code}`);
-  const totalStr = asAmount(body?.data?.wart?.total?.str);
-  if (!totalStr) throw new Error("unexpected node balance shape");
-  return { reserve: totalStr, node: nodeBase() };
+  const paths = [
+    `/account/${config.faucetAddress}/balance`,
+    `/account/${config.faucetAddress}/wart_balance`,
+  ];
+  const errors = [];
+  for (const path of paths) {
+    try {
+      const res = await fetch(`${nodeBase()}${path}`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = await res.json();
+      if (body?.code !== 0) throw new Error(`node code ${body?.code}`);
+      const totalStr =
+        asAmount(body?.data?.balance) || asAmount(body?.data?.wart?.total?.str);
+      if (!totalStr) throw new Error("unexpected node balance shape");
+      return { reserve: totalStr, node: nodeBase() };
+    } catch (err) {
+      errors.push(`${path}: ${err?.message || err}`);
+    }
+  }
+  throw new Error(errors.join(" | "));
 }
 
 async function pollWartscan() {
@@ -50,7 +62,7 @@ async function pollWartscan() {
 
 async function poll() {
   const errors = [];
-  for (const fn of [pollWartscan, pollNode]) {
+  for (const fn of [pollNode, pollWartscan]) {
     try {
       const snap = await fn();
       last = { ...snap, checkedAt: Date.now(), error: null };

@@ -37,7 +37,7 @@ if (network !== "mainnet") {
   throw new Error(`This faucet is mainnet-only. Refusing NETWORK=${network}.`);
 }
 
-const nodeUrl = (process.env.NODE_URL || "https://node.wartscan.io").trim().replace(/\/$/, "");
+const nodeUrl = (process.env.NODE_URL || "https://warthognode.duckdns.org").trim().replace(/\/$/, "");
 if (!/^https?:\/\//i.test(nodeUrl)) {
   throw new Error("NODE_URL must be http(s)://");
 }
