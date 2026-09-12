@@ -1,3 +1,4 @@
+import { TRILLION_LOGO } from "./logo-uri.js";
 function esc(s) {
   return String(s ?? "")
     .replace(/&/g, "&#38;")
@@ -24,14 +25,12 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Community WART faucet</title>
-<meta name="description" content="Community mainnet Warthog faucet. Not an official Warthog Network service."/>
 <style>
   :root { color-scheme: dark; --bg:#07080d; --card:#0e1118; --line:#242a38; --gold:#f5c400; --text:#f4f5f7; --muted:#8b93a3; --ok:#3ddc84; --err:#ff6b6b; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family: ui-sans-serif, system-ui, sans-serif; background: radial-gradient(1200px 500px at 80% -10%, rgba(245,196,0,.08), transparent 50%), var(--bg); color: var(--text); }
+  body { margin:0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); }
   header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.4rem; border-bottom:1px solid var(--line); }
-  .brand { display:flex; align-items:center; gap:.7rem; font-weight:700; }
-  .dot { width:28px; height:28px; border-radius:50%; background:var(--gold); color:#111; display:grid; place-items:center; }
+  .brand { display:flex; align-items:center; gap:.75rem; font-weight:700; }
   nav a { color:var(--gold); text-decoration:none; margin-left:1rem; font-size:.82rem; font-weight:600; }
   main { max-width:44rem; margin:0 auto; padding:2.2rem 1.2rem 4rem; }
   .kicker { color:var(--gold); font-size:.72rem; letter-spacing:.14em; font-weight:700; text-transform:uppercase; }
@@ -56,16 +55,21 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   footer { color:var(--muted); font-size:.78rem; line-height:1.5; }
   table { width:100%; border-collapse:collapse; font-size:.82rem; }
   th, td { text-align:left; padding:.45rem 0; border-bottom:1px solid var(--line); }
-  th { color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; }
+  th { color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase; }
   .mono { font-family:ui-monospace,Menlo,monospace; word-break:break-all; }
-  table a { color:var(--gold); }
-  footer a { color:var(--gold); }
+  table a, footer a { color:var(--gold); }
+  .op-logo { height:26px; width:auto; display:block; }
+  .op-foot { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.55rem; }
+  .op-foot img { height:20px; width:auto; }
   @media (max-width:640px) { .stats { grid-template-columns:1fr; } nav { display:none; } }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><span class="dot">W</span> Community WART faucet</div>
+  <div class="brand">
+    <img class="op-logo" alt="Trillion Capital Toronto Corporation" src="${TRILLION_LOGO}"/>
+    <span>Community WART faucet</span>
+  </div>
   <nav>
     <a href="https://warthog.network">warthog.network</a>
     <a href="https://docs.warthog.network">docs</a>
@@ -99,35 +103,23 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
         <button class="ghost" id="copy">Copy address</button>
         <button class="ghost" id="copyMiner">Copy miner flag</button>
         \u00b7 <a href="https://wartscan.io/account/${esc(address)}" style="color:var(--gold);font-size:.85rem">wartscan.io</a>
-        <p class="lede" style="margin:.8rem 0 .5rem;font-size:.88rem">
-          Any WART sent here becomes faucet reserve. Same for block rewards:
-          paste this address as the pool payout / wallet field.
-          Janushash needs <b>CPU + GPU</b> on one box. Do not mine to an exchange.
-        </p>
-        <pre class="addr" id="minerCmd" style="margin:0">-a ${esc(address)}</pre>
-        <p class="lede" style="margin:.7rem 0 0;font-size:.82rem">
-          BzMiner or janusminer: wallet/payout = that address.
-          Solo against your node: <code>stratum+tcp://127.0.0.1:3456</code>.
-          Guide: <a href="https://docs.warthog.network/guides/mining/quickstart/">mining quickstart</a>
-          \u00b7 pools: <a href="https://miningpoolstats.stream/warthog">miningpoolstats</a>
-          \u00b7 calc: <a href="https://wartscan.io/calculator">wartscan calculator</a>
-        </p>
       </div>
       ${qrSrc ? `<img class="qr" alt="QR" src="${qrSrc}"/>` : ""}
     </div>
   </section>
   <section>
     <label>Public log</label>
-    <p class="lede" style="margin:0 0 .6rem;font-size:.88rem">Completed claims, most recent first. Address and tx only \u2014 no IPs.</p>
     <table id="log">
       <thead><tr><th>Address</th><th>Amount</th><th>When</th><th>Tx</th></tr></thead>
       <tbody id="log-body">${logRows}</tbody>
     </table>
   </section>
   <footer>
-    Community faucet. No accounts, no cards, no email.
+    <div class="op-foot">
+      <img alt="Trillion Capital" src="${TRILLION_LOGO}"/>
+      <span>Operated by Trillion Capital Toronto Corporation. Not an official Warthog Network service.</span>
+    </div>
     Official project: <a href="https://warthog.network">warthog.network</a>
-    \u00b7 Discord <a href="https://discord.gg/QMDV8bGTdQ">invite</a>
     \u00b7 Code <a href="https://github.com/trillioncapitaltoronto/wart-faucet">github</a>
   </footer>
 </main>
@@ -142,17 +134,10 @@ document.getElementById("go").onclick = async () => {
   out.className = "";
   out.textContent = "Sending\u2026";
   try {
-    const r = await fetch("/api/drip", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ address: document.getElementById("addr").value.trim() }),
-    });
+    const r = await fetch("/api/drip", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ address: document.getElementById("addr").value.trim() }) });
     const b = await r.json();
     out.className = b.ok ? "ok" : "err";
-    out.textContent = b.ok
-      ? ("Sent " + b.amount + " WART" + (b.explorerUrl ? "\\n" + b.explorerUrl : ""))
-      : ("Error: " + (b.error || r.status));
-    if (b.ok) refreshLog();
+    out.textContent = b.ok ? ("Sent " + b.amount + " WART" + (b.explorerUrl ? "\\n" + b.explorerUrl : "")) : ("Error: " + (b.error || r.status));
   } catch (e) {
     out.className = "err";
     out.textContent = e.message;
@@ -160,22 +145,6 @@ document.getElementById("go").onclick = async () => {
     btn.disabled = false;
   }
 };
-async function refreshLog() {
-  try {
-    const r = await fetch("/api/log?limit=20");
-    const j = await r.json();
-    const body = document.getElementById("log-body");
-    if (!j.claims || !j.claims.length) { body.innerHTML = '<tr><td colspan="4" class="muted">No claims yet.</td></tr>'; return; }
-    body.innerHTML = j.claims.map((c) => {
-      const a = String(c.address || "");
-      const shown = a.length > 16 ? a.slice(0,10) + "\u2026" + a.slice(-6) : a;
-      const tx = c.tx_hash || "";
-      const txShown = tx.length > 10 ? tx.slice(0,10) + "\u2026" : tx;
-      const href = c.explorerUrl || (tx ? ("https://wartscan.io/tx/" + tx) : "#");
-      return '<tr><td class="mono">' + shown + '</td><td class="mono">' + (c.amount_wart || "") + '</td><td class="muted">' + (c.created_at || "") + '</td><td class="mono">' + (tx ? ('<a href="' + href + '">' + txShown + '</a>') : "\u2014") + '</td></tr>';
-    }).join("");
-  } catch (e) {}
-}
 </script>
 </body>
 </html>`;
