@@ -42,6 +42,11 @@ if (!/^https?:\/\//i.test(nodeUrl)) {
   throw new Error("NODE_URL must be http(s)://");
 }
 
+const wartscanApi = (process.env.WARTSCAN_API || "https://wartscan.io/api").trim().replace(/\/$/, "");
+if (!/^https?:\/\//i.test(wartscanApi)) {
+  throw new Error("WARTSCAN_API must be http(s)://");
+}
+
 const dripAmount = process.env.DRIP_AMOUNT || "2";
 const weeklyBudget = numOr(process.env.WEEKLY_BUDGET, 100);
 const minReserve = numOr(process.env.MIN_RESERVE, 1);
@@ -59,6 +64,7 @@ export const config = Object.freeze({
   faucetAddress: account.address.hex,
   network,
   nodeUrl,
+  wartscanApi,
   port: intOr(process.env.PORT, 3000),
   dripAmount,
   weeklyBudget,

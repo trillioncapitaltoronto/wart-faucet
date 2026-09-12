@@ -102,6 +102,7 @@ app.get("/api/status", (_req, res) => {
     faucetAddress: config.faucetAddress,
     reserve: b.reserve,
     node: b.node,
+    wartscanApi: config.wartscanApi,
     dripAmount: config.dripAmount,
     weeklyBudget: config.weeklyBudget,
     minReserve: config.minReserve,
