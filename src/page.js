@@ -1,4 +1,3 @@
-import { TRILLION_LOGO } from "./logo-uri.js";
 function esc(s) {
   return String(s ?? "")
     .replace(/&/g, "&#38;")
@@ -6,6 +5,8 @@ function esc(s) {
     .replace(/>/g, "&#62;")
     .replace(/"/g, "&#34;");
 }
+
+const WORDMARK = `<span class="tc-mark" aria-label="Trillion Capital Toronto Corporation"><span class="tc-name">TRILLIONCAPITAL</span><span class="tc-sub">TORONTO CORPORATION</span></span>`;
 
 export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, qr, claims = [] }) {
   const qrSrc = typeof qr === "string" && qr.startsWith("data:image/") ? qr : "";
@@ -26,11 +27,14 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Community WART faucet</title>
 <style>
-  :root { color-scheme: dark; --bg:#07080d; --card:#0e1118; --line:#242a38; --gold:#f5c400; --text:#f4f5f7; --muted:#8b93a3; --ok:#3ddc84; --err:#ff6b6b; }
+  :root { color-scheme: dark; --bg:#07080d; --card:#0e1118; --line:#242a38; --gold:#f5c400; --text:#f4f5f7; --muted:#8b93a3; --ok:#3ddc84; --err:#ff6b6b; --tc:#6b6fd6; }
   * { box-sizing: border-box; }
   body { margin:0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); }
   header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.4rem; border-bottom:1px solid var(--line); }
-  .brand { display:flex; align-items:center; gap:.75rem; font-weight:700; }
+  .brand { display:flex; align-items:center; gap:.85rem; font-weight:700; }
+  .tc-mark { display:flex; flex-direction:column; line-height:1; }
+  .tc-name { color:var(--tc); letter-spacing:.08em; font-size:.78rem; font-weight:800; }
+  .tc-sub { color:var(--tc); letter-spacing:.22em; font-size:.42rem; font-weight:700; margin-top:.18rem; opacity:.9; }
   nav a { color:var(--gold); text-decoration:none; margin-left:1rem; font-size:.82rem; font-weight:600; }
   main { max-width:44rem; margin:0 auto; padding:2.2rem 1.2rem 4rem; }
   .kicker { color:var(--gold); font-size:.72rem; letter-spacing:.14em; font-weight:700; text-transform:uppercase; }
@@ -58,16 +62,14 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   th { color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase; }
   .mono { font-family:ui-monospace,Menlo,monospace; word-break:break-all; }
   table a, footer a { color:var(--gold); }
-  .op-logo { height:26px; width:auto; display:block; }
   .op-foot { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.55rem; }
-  .op-foot img { height:20px; width:auto; }
   @media (max-width:640px) { .stats { grid-template-columns:1fr; } nav { display:none; } }
 </style>
 </head>
 <body>
 <header>
   <div class="brand">
-    <img class="op-logo" alt="Trillion Capital Toronto Corporation" src="${TRILLION_LOGO}"/>
+    ${WORDMARK}
     <span>Community WART faucet</span>
   </div>
   <nav>
@@ -79,11 +81,7 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
 <main>
   <p class="kicker">Mainnet \u00b7 community pot \u00b7 not official</p>
   <h1>Starter WART so you can use the chain.</h1>
-  <p class="lede">
-    One drip per wallet. Donate or point a miner at the same address to keep the pot alive.
-    Built with official <code>warthog-js</code> against a local or operator-chosen mainnet node.
-    This is not operated by Warthog Network.
-  </p>
+  <p class="lede">One drip per wallet. Donate or mine to the pot. Not operated by Warthog Network.</p>
   <div class="stats">
     <div class="stat"><b>${esc(drip)} WART</b><span>per wallet, once</span></div>
     <div class="stat"><b>${esc(reserve ?? "waiting on node")}</b><span>reserve</span></div>
@@ -102,21 +100,17 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
         <div class="addr" id="faucet">${esc(address)}</div>
         <button class="ghost" id="copy">Copy address</button>
         <button class="ghost" id="copyMiner">Copy miner flag</button>
-        \u00b7 <a href="https://wartscan.io/account/${esc(address)}" style="color:var(--gold);font-size:.85rem">wartscan.io</a>
       </div>
       ${qrSrc ? `<img class="qr" alt="QR" src="${qrSrc}"/>` : ""}
     </div>
   </section>
   <section>
     <label>Public log</label>
-    <table id="log">
-      <thead><tr><th>Address</th><th>Amount</th><th>When</th><th>Tx</th></tr></thead>
-      <tbody id="log-body">${logRows}</tbody>
-    </table>
+    <table id="log"><thead><tr><th>Address</th><th>Amount</th><th>When</th><th>Tx</th></tr></thead><tbody id="log-body">${logRows}</tbody></table>
   </section>
   <footer>
     <div class="op-foot">
-      <img alt="Trillion Capital" src="${TRILLION_LOGO}"/>
+      ${WORDMARK}
       <span>Operated by Trillion Capital Toronto Corporation. Not an official Warthog Network service.</span>
     </div>
     Official project: <a href="https://warthog.network">warthog.network</a>
@@ -129,21 +123,14 @@ document.getElementById("copyMiner").onclick = () => navigator.clipboard.writeTe
 document.getElementById("go").onclick = async () => {
   const btn = document.getElementById("go");
   const out = document.getElementById("out");
-  btn.disabled = true;
-  out.hidden = false;
-  out.className = "";
-  out.textContent = "Sending\u2026";
+  btn.disabled = true; out.hidden = false; out.className = ""; out.textContent = "Sending\u2026";
   try {
     const r = await fetch("/api/drip", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ address: document.getElementById("addr").value.trim() }) });
     const b = await r.json();
     out.className = b.ok ? "ok" : "err";
     out.textContent = b.ok ? ("Sent " + b.amount + " WART" + (b.explorerUrl ? "\\n" + b.explorerUrl : "")) : ("Error: " + (b.error || r.status));
-  } catch (e) {
-    out.className = "err";
-    out.textContent = e.message;
-  } finally {
-    btn.disabled = false;
-  }
+  } catch (e) { out.className = "err"; out.textContent = e.message; }
+  finally { btn.disabled = false; }
 };
 </script>
 </body>
