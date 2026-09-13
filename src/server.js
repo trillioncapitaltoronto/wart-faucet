@@ -2,6 +2,7 @@ import { app } from "./app.js";
 import { config } from "./config.js";
 import { balance } from "./balance.js";
 import { ratelimit } from "./ratelimit.js";
+import { store } from "./store.js";
 
 const started = Date.now();
 
@@ -21,3 +22,12 @@ server.on("error", (err) => {
 balance.start().catch((err) => {
   console.error(err.message || err);
 });
+
+store
+  .hydrateFromChain()
+  .then((info) => {
+    console.log(`claim log hydrated from chain: ${JSON.stringify(info)}`);
+  })
+  .catch((err) => {
+    console.error(`claim hydrate skipped: ${err.message || err}`);
+  });
