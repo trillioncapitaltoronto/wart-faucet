@@ -50,6 +50,7 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   button.gold { margin-top:.85rem; width:100%; padding:.75rem; border:0; border-radius:999px; background:var(--gold); color:#111; font:inherit; font-weight:700; cursor:pointer; }
   button.gold:disabled { opacity:.55; cursor:not-allowed; }
   button.ghost { margin-top:.55rem; padding:.35rem .65rem; border-radius:.4rem; border:1px solid var(--line); background:transparent; color:var(--text); font:inherit; font-size:.8rem; cursor:pointer; }
+  button.ghost.copied { color:var(--ok); border-color:var(--ok); }
   .addr { font-family:ui-monospace,Menlo,monospace; font-size:.8rem; word-break:break-all; background:#07080d; border:1px solid var(--line); border-radius:.55rem; padding:.7rem; }
   .row { display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap; }
   img.qr { width:148px; height:148px; background:#fff; padding:6px; border-radius:.45rem; }
@@ -98,8 +99,8 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
       <div style="flex:1">
         <label>Fund the pot \u2014 donate or mine</label>
         <div class="addr" id="faucet">${esc(address)}</div>
-        <button class="ghost" id="copy">Copy address</button>
-        <button class="ghost" id="copyMiner">Copy miner flag</button>
+        <button class="ghost" id="copy" type="button">Copy address</button>
+        <button class="ghost" id="copyMiner" type="button">Copy miner flag</button>
       </div>
       ${qrSrc ? `<img class="qr" alt="QR" src="${qrSrc}"/>` : ""}
     </div>
@@ -118,8 +119,35 @@ export function renderPage({ address, reserve, drip, weekLeft, weekMax, nodeOk, 
   </footer>
 </main>
 <script>
-document.getElementById("copy").onclick = () => navigator.clipboard.writeText(document.getElementById("faucet").textContent.trim());
-document.getElementById("copyMiner").onclick = () => navigator.clipboard.writeText("-a " + document.getElementById("faucet").textContent.trim());
+function flashCopied(btn) {
+  const label = btn.dataset.label || btn.textContent;
+  btn.dataset.label = label;
+  btn.textContent = "Copied!";
+  btn.classList.add("copied");
+  clearTimeout(btn._copiedTimer);
+  btn._copiedTimer = setTimeout(() => {
+    btn.textContent = label;
+    btn.classList.remove("copied");
+  }, 1600);
+}
+function copyText(btn, text) {
+  const done = () => flashCopied(btn);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => {
+      btn.textContent = "Copy failed";
+    });
+    return;
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); done(); } catch (e) { btn.textContent = "Copy failed"; }
+  ta.remove();
+}
+const addr = () => document.getElementById("faucet").textContent.trim();
+document.getElementById("copy").onclick = (e) => copyText(e.currentTarget, addr());
+document.getElementById("copyMiner").onclick = (e) => copyText(e.currentTarget, "-a " + addr());
 document.getElementById("go").onclick = async () => {
   const btn = document.getElementById("go");
   const out = document.getElementById("out");
